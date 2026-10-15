@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Un juego super facil para ti mi amor</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:linear-gradient(160deg,#ffd6e0,#e8c7ff);font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;color:#5a1a3a}
+  .screen{display:none;width:min(94vw,420px);padding:22px;text-align:center;background:rgba(255,255,255,.78);border-radius:24px;box-shadow:0 10px 30px rgba(120,30,80,.25)}
+  .screen.on{display:block}
+  h1{margin:.2em 0;font-size:28px}
+  p{line-height:1.45}
+  button{font:inherit;font-size:18px;padding:12px 22px;border:0;border-radius:999px;background:#e8416f;color:#fff;cursor:pointer;margin:6px;box-shadow:0 4px 0 #a82a50}
+  button:active{transform:translateY(2px);box-shadow:0 2px 0 #a82a50}
+  .opt{display:block;width:100%;background:#fff;color:#5a1a3a;box-shadow:0 3px 0 #e0b3c6;border:2px solid #f3bfd1;border-radius:16px}
+  .opt.bad{background:#ffd0d0}
+  .opt.good{background:#c9f5d2}
+  canvas{width:100%;background:#fff0f5;border-radius:16px;touch-action:none;display:block}
+  #hud{display:flex;justify-content:space-between;font-size:18px;margin-bottom:8px}
+  #grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .card{aspect-ratio:1;font-size:32px;border-radius:12px;background:#e8416f;color:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+  .card.up,.card.done{background:#fff;color:#000 !important;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+  .card.done{opacity:.6}
+  #letter{white-space:pre-wrap;text-align:left;font-size:18px;min-height:170px;line-height:1.5}
+  .float{position:fixed;bottom:-40px;font-size:28px;animation:up 4s linear forwards;pointer-events:none}
+  @keyframes up{to{transform:translateY(-110vh) rotate(30deg);opacity:0}}
+</style>
+</head>
+<body>
+
+<!-- INICIO -->
+<div class="screen on" id="s-menu">
+  <div style="font-size:56px">💌</div>
+  <h1 id="titulo"></h1>
+  <p>Superando 3 retos llegarás a una sorpresa que preparé solo para ti, algo tranqui, solo unas palabras para ti.</p>
+  <p>1. Atrapa mis corazones &nbsp; 2. ¿Cuánto me conoces lol? &nbsp; 3. Encuentra las parejas faciiiil</p>
+  <button onclick="startCatch()">Comenzar 💖</button>
+</div>
+
+<!-- RETO 1 -->
+<div class="screen" id="s-catch">
+  <h1>Reto 1: Atrapa mis corazones</h1>
+  <div id="hud"><span id="hGot"></span><span id="hLives"></span></div>
+  <canvas id="cv" width="360" height="480"></canvas>
+  <p>Mueve el dedo o el ratón. Atrapa ❤️ y evita 💔</p>
+</div>
+
+<!-- RETO 2 -->
+<div class="screen" id="s-quiz">
+  <h1>Reto 2: ¿Cuánto me conoces?</h1>
+  <p id="qn"></p>
+  <h2 id="qt"></h2>
+  <div id="qo"></div>
+  <p id="qm"></p>
+</div>
+
+<!-- RETO 3 -->
+<div class="screen" id="s-mem">
+  <h1>Reto 3: Encuentra las parejas</h1>
+  <div id="grid"></div>
+</div>
+
+<!-- FINAL -->
+<div class="screen" id="s-end">
+  <div style="font-size:48px">💝</div>
+  <h1>¡Lo lograste!</h1>
+  <div id="letter"></div>
+  <button onclick="startCatch()">Jugar de nuevo</button>
+</div>
+
+<script>
+/* ============================================================
+   PERSONALIZA AQUÍ
+   ============================================================ */
+const CONFIG = {
+  novio: "Mi amor",          // su nombre o apodo
+  tu: "Dani",           // tu nombre
+  titulo: "Un juego solo para ti",
+
+  // Cambia las preguntas por cosas reales de ustedes.
+  // o = opciones, c = número de la respuesta correcta (0 es la primera)
+  preguntas: [
+    {q: "¿Cuál es mi comida favorita?",         o: ["Pizza", "Tacos", "Sushi", "Pasta"],                     c:3},
+    {q: "¿Dónde fue nuestra primera cita?",      o: ["En el cine", "En un café", "En el parque", "En mi casa"], c:0},
+    {q: "¿Qué es lo que más me hace reír de ti?", o: ["Tus bromas", "Tus caras", "Tus bailes", "Todo"],        c: 3},
+    {q: "¿Cuál es mi color favorito?",           o: ["Rosa", "Azul", "Blanco", "Morado"],                      c: 2},
+    {q: "¿Qué quiero hacer contigo algún día?",  o: ["Viajar", "Tener un perrito", "Vivir juntos", "Todo"],   c: 3},
+    {q: "¿Qué canción te dedique?",  o: ["Canción", "Te quiero a ti", "Si es posible", "Hasta la muerte"],   c: 3}
+  ],
+
+  parejas: ["🌹", "🍕", "🎮", "🐶", "🎵", "✈️"],
+
+  // Usa {novio} y {tu} dentro del mensaje
+  mensaje:
+"Para ti mi amor fran:\n\n" +
+"Hice este juego porque quería regalarte algo diferente. " +
+"Cada reto es un pedacito de lo que siento por ti.\n\n" +
+"Gracias por hacerme reír, por cuidarme y por ser mi lugar favorito. " +
+"Contigo cualquier día normal se vuelve especial.\n\n" +
+"Te quiero muchísimo. 💖\n\n" +
+"te mega amo"
+};
+/* ============================================================ */
+
+const $ = id => document.getElementById(id);
+$('titulo').textContent = CONFIG.titulo;
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  $(id).classList.add('on');
+}
+
+
+let catchToken = 0;
+function startCatch() {
+  show('s-catch');
+  const token = ++catchToken;
+  const cv = $('cv'), x = cv.getContext('2d');
+  const W = 360, H = 480, GOAL = 12;
+  let px = W / 2, items = [], got = 0, lives = 3, last = performance.now();
+
+  const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+  function mv(clientX) {
+    const r = cv.getBoundingClientRect();
+    px = clamp((clientX - r.left) * W / r.width, 22, W - 22);
+  }
+
+  cv.onpointermove = e => { e.preventDefault(); mv(e.clientX); };
+  cv.onpointerdown = e => { e.preventDefault(); mv(e.clientX); };
+  cv.ontouchstart = e => { if (e.touches && e.touches[0]) { e.preventDefault(); mv(e.touches[0].clientX); } };
+  cv.ontouchmove = e => { if (e.touches && e.touches[0]) { e.preventDefault(); mv(e.touches[0].clientX); } };
+
+  function loop(now) {
+    if (token !== catchToken) return;
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+
+    if (Math.random() < dt * 1.7) {
+      items.push({x: 20 + Math.random() * (W - 40), y: -20, v: 110 + Math.random() * 70 + got * 5, bad: Math.random() < 0.25});
+    }
+    items.forEach(i => i.y += i.v * dt);
+    items = items.filter(i => {
+      if (i.y > H - 85 && i.y < H + 10 && Math.abs(i.x - px) < 52) {
+        if (i.bad) lives--; else got++;
+        return false;
+      }
+      return i.y < H + 30;
+    });
+
+    x.clearRect(0, 0, W, H);
+    x.textAlign = 'center';
+    x.font = '30px serif';
+    items.forEach(i => x.fillText(i.bad ? '💔' : '❤️', i.x, i.y));
+    x.font = '40px serif';
+    x.fillText('🧺', Math.max(20, Math.min(W - 20, px)), H - 20);
+
+    $('hGot').textContent = '❤️ ' + got + ' / ' + GOAL;
+    $('hLives').textContent = 'Vidas: ' + '💗'.repeat(Math.max(0, lives));
+
+    if (got >= GOAL) { startQuiz(); return; }
+    if (lives <= 0) { lives = 3; items = []; }   // sin castigo: recupera vidas
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Reto 2: preguntas ---------- */
+function startQuiz() {
+  catchToken++;
+  show('s-quiz');
+  let i = 0;
+  render();
+  function render() {
+    const q = CONFIG.preguntas[i];
+    $('qn').textContent = 'Pregunta ' + (i + 1) + ' de ' + CONFIG.preguntas.length;
+    $('qt').textContent = q.q;
+    $('qm').textContent = '';
+    const box = $('qo');
+    box.innerHTML = '';
+    q.o.forEach((t, k) => {
+      const b = document.createElement('button');
+      b.className = 'opt';
+      b.textContent = t;
+      b.onclick = () => {
+        if (k === q.c) {
+          b.classList.add('good');
+          $('qm').textContent = '¡Correcto! 💕';
+          setTimeout(() => { i++; i < CONFIG.preguntas.length ? render() : startMemory(); }, 700);
+        } else {
+          b.classList.add('bad');
+          $('qm').textContent = '¡Casi! Inténtalo otra vez 😘';
+        }
+      };
+      box.appendChild(b);
+    });
+  }
+}
+
+/* ---------- Reto 3: memoria ---------- */
+function startMemory() {
+  show('s-mem');
+  const g = $('grid');
+  g.innerHTML = '';
+  const arr = [...CONFIG.parejas, ...CONFIG.parejas].sort(() => Math.random() - 0.5);
+  let first = null, lock = false, found = 0;
+  arr.forEach(e => {
+    const d = document.createElement('div');
+    d.className = 'card';
+    d.textContent = e;
+    d.onclick = () => {
+      if (lock || d.classList.contains('up') || d.classList.contains('done')) return;
+      d.classList.add('up');
+      if (!first) { first = d; return; }
+      if (first.textContent === e) {
+        first.classList.remove('up'); d.classList.remove('up');
+        first.classList.add('done'); d.classList.add('done');
+        first = null; found++;
+        if (found === CONFIG.parejas.length) setTimeout(startEnd, 800);
+      } else {
+        lock = true;
+        const f = first; first = null;
+        setTimeout(() => { f.classList.remove('up'); d.classList.remove('up'); lock = false; }, 800);
+      }
+    };
+    g.appendChild(d);
+  });
+}
+
+
+let typeTimer, heartTimer;
+function startEnd() {
+  show('s-end');
+  const full = CONFIG.mensaje.replace(/{novio}/g, CONFIG.novio).replace(/{tu}/g, CONFIG.tu);
+  const el = $('letter');
+  el.textContent = '';
+  let n = 0;
+  clearInterval(typeTimer); clearInterval(heartTimer);
+  typeTimer = setInterval(() => {
+    el.textContent = full.slice(0, ++n);
+    if (n >= full.length) clearInterval(typeTimer);
+  }, 45);
+  heartTimer = setInterval(() => {
+    const h = document.createElement('div');
+    h.className = 'float';
+    h.textContent = ['💖', '💕', '💗', '🌹', '✨'][Math.floor(Math.random() * 5)];
+    h.style.left = Math.random() * 95 + 'vw';
+    document.body.appendChild(h);
+    setTimeout(() => h.remove(), 4000);
+  }, 300);
+}
+</script>
+</body>
+</html>
